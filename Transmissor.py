@@ -1,54 +1,60 @@
 import cv2
 import numpy as np
 import time
-import pyautogui
+import tkinter as tk
 
 
-def transition_colors(sequence):
 
+def show_color(color, display_time=2):
     img = np.zeros((500, 500, 3), dtype=np.uint8)
-    img[:] = (0, 0, 255)  # Tela vermelha
-    cv2.imshow("Transmitter", img)
-    cv2.waitKey(1)  # Atualiza a janela e espera 1ms para exibir corretamente
-    time.sleep(3)  # Espera 3 segundos
+    img[:, :] = color
 
+    cv2.imshow("Transmitter", img)
+    time.sleep(display_time)
+
+    cv2.waitKey(1)
+
+
+def transition_colors(sequence, previous_bit_timing_color_was_black, bit_timing=2):
+    white = (255, 255, 255)
+    black = (0, 0, 0)
+    green = (0, 255, 0)
+    red = (0, 0, 255)
+
+    show_color(green, bit_timing)
 
     for char in sequence:
-        white = (255, 255, 255)
-        black = (0, 0, 0)
-
-        if char == "0":
+        if char == "1":
             color = white
-        elif char == "1":
+        elif char == "0":
             color = black
 
         img = np.zeros((500, 500, 3), dtype=np.uint8)
-        img[:] = color
+
+        img[:, 200:] = color
+
+        previous_bit_timing_color_was_black = not previous_bit_timing_color_was_black
+        img[:, :200] = white if previous_bit_timing_color_was_black else black
 
         cv2.imshow("Transmitter", img)
-        cv2.waitKey(1)  
 
+        time.sleep(bit_timing)
 
-
-        time.sleep(3)
         if cv2.waitKey(1) & 0xFF == ord("q"):
             return False
-    
-    
-    img = np.zeros((500, 500, 3), dtype=np.uint8)
-    img[:] = (255, 0 , 0)  # Tela Azul
-    cv2.imshow("Transmitter", img)
-    cv2.waitKey(1)  # Atualiza a janela e espera 1ms para exibir corretamente
-    time.sleep(3)  # Espera 3 segundos
 
-    
+    show_color(red, bit_timing)
 
-    return True
+    return True, previous_bit_timing_color_was_black
 
 
 def centralize_window(window_name, width, height):
-    screen_width, screen_height = pyautogui.size()
+    root = tk.Tk() #Para obter a resolução da tela
+    screen_width = root.winfo_screenwidth()
+    screen_height = root.winfo_screenheight()
+    root.withdraw()  # Fechar a janela do tkinter
 
+    # Calcular a posição para centralizar
     x = (screen_width - width) // 2
     y = (screen_height - height) // 2
 
@@ -64,12 +70,16 @@ def run_transmitter(sequence):
     centralize_window("Transmitter", width, height)
 
     continue_program = True
+    previous_bit_timing_color_was_black = False
     while continue_program:
-        continue_program = transition_colors(sequence)
+        continue_program, previous_bit_timing_color_was_black = transition_colors(
+            sequence,
+            previous_bit_timing_color_was_black,
+        )
 
     cv2.destroyAllWindows()
 
 
-if __name__ == "__main__":
-    transmitter_message = "0101"
-    run_transmitter(transmitter_message)
+transmitter_message = "01010101"
+run_transmitter(transmitter_message)
+
